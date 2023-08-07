@@ -135,7 +135,7 @@ def execute(block, config):
     section = section_names.matter_power_nl
     k, z_array, P = (block.get_grid(section, "k_h", "z", "P_k"))
 
-    params = ['fb_a', 'fb_pow', 'fb_pivot', 'alpha', 'beta', 'gamma']
+    params = ['fb_a', 'fb_pow', 'fb_pivot', 'epsilon', 'alpha', 'beta', 'gamma', 'm_pivot']
 
     spk_params = {}
     for param_i in params:
@@ -144,11 +144,20 @@ def execute(block, config):
         except:
             spk_params[param_i] = None
 
-    modes = [
-        ('Power law', ['fb_a', 'fb_pow', 'fb_pivot'], spk_params['fb_a'], spk_params['fb_pow'], spk_params['fb_pivot']),
-        ('Non-parametric fb table', ['fb_table'], fb_table),
-        ('Redshift dependent power law', ['alpha', 'beta', 'gamma', 'astropy_model'], spk_params['alpha'], spk_params['beta'], spk_params['gamma'], cosmo)
-    ]
+    if (spk_params['epsilon']) or (spk_params['m_pivot']):
+
+        modes = [
+                ('Power law', ['fb_a', 'fb_pow', 'fb_pivot'], spk_params['fb_a'], spk_params['fb_pow'], spk_params['fb_pivot']),
+                ('Non-parametric fb table', ['fb_table'], fb_table),
+                ('Redshift dependent double power law', ['epsilon', 'alpha', 'beta', 'gamma', 'm_pivot', 'astropy_model'], spk_params['epsilon'], spk_params['alpha'], spk_params['beta'], spk_params['gamma'], spk_params['m_pivot'], cosmo)
+                ]
+    else:
+        modes = [
+                ('Power law', ['fb_a', 'fb_pow', 'fb_pivot'], spk_params['fb_a'], spk_params['fb_pow'], spk_params['fb_pivot']),
+                ('Non-parametric fb table', ['fb_table'], fb_table),
+                ('Redshift dependent power law', ['alpha', 'beta', 'gamma', 'astropy_model'], spk_params['alpha'], spk_params['beta'], spk_params['gamma'], cosmo),
+                ]
+            
     provided_modes = sum(any(param is not None for param in mode[2:]) for mode in modes)
 
     if provided_modes != 1:
@@ -180,9 +189,10 @@ def execute(block, config):
 
         k, sup = spk.sup_model(SO=SO, z=z, fb_a=spk_params['fb_a'], fb_pow=spk_params['fb_pow'], 
                                fb_pivot=spk_params['fb_pivot'], M_halo=M_halo, 
-                               fb=fb, extrapolate=extrapolate, 
+                               fb=fb, extrapolate=extrapolate, epsilon=spk_params['epsilon'],
                                alpha=spk_params['alpha'], beta=spk_params['beta'], 
-                               gamma=spk_params['gamma'], cosmo=cosmo, k_array=k, verbose=verbose)
+                               gamma=spk_params['gamma'], m_pivot=spk_params['m_pivot'],
+                               cosmo=cosmo, k_array=k, verbose=verbose)
         sup_array[:, i] = sup
 
     P_mod = P * sup_array
